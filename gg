@@ -1,0 +1,73 @@
+
+local player = game.Players.LocalPlayer
+local userInputService = game:GetService("UserInputService")
+local tweenService = game:GetService("TweenService")
+local character = player.Character or player.CharacterAdded:Wait()
+local humanoid = character:WaitForChild("Humanoid")
+local flying = false
+local flySpeed = 50
+
+-- Function to toggle flying
+local function toggleFly()
+    flying = not flying
+    if flying then
+        humanoid.PlatformStand = true
+        -- Enable flight controls
+        local bodyVelocity = Instance.new("BodyVelocity")
+        bodyVelocity.Velocity = Vector3.new(0, 0, 0)
+        bodyVelocity.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+        bodyVelocity.P = 5000
+        bodyVelocity.Parent = character.PrimaryPart
+
+        -- Enable body gyro for stabilization
+        local bodyGyro = Instance.new("BodyGyro")
+        bodyGyro.CFrame = character.PrimaryPart.CFrame
+        bodyGyro.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
+        bodyGyro.P = 3000
+        bodyGyro.Parent = character.PrimaryPart
+
+        -- Flight control
+        userInputService.InputBegan:Connect(function(input, processed)
+            if not processed then
+                if input.KeyCode == Enum.KeyCode.Space then
+                    bodyVelocity.Velocity = Vector3.new(0, flySpeed, 0)
+                elseif input.KeyCode == Enum.KeyCode.LeftShift then
+                    bodyVelocity.Velocity = Vector3.new(0, -flySpeed, 0)
+                elseif input.KeyCode == Enum.KeyCode.W then
+                    bodyVelocity.Velocity = character.PrimaryPart.CFrame.LookVector * flySpeed
+                elseif input.KeyCode == Enum.KeyCode.S then
+                    bodyVelocity.Velocity = -character.PrimaryPart.CFrame.LookVector * flySpeed
+                elseif input.KeyCode == Enum.KeyCode.A then
+                    bodyVelocity.Velocity = -character.PrimaryPart.CFrame.RightVector * flySpeed
+                elseif input.KeyCode == Enum.KeyCode.D then
+                    bodyVelocity.Velocity = character.PrimaryPart.CFrame.RightVector * flySpeed
+                end
+            end
+        end)
+
+    else
+        humanoid.PlatformStand = false
+        -- Clean up flight controls
+        local bodyVelocity = character.PrimaryPart:FindFirstChildOfClass("BodyVelocity")
+        if bodyVelocity then
+            bodyVelocity:Destroy()
+        end
+        local bodyGyro = character.PrimaryPart:FindFirstChildOfClass("BodyGyro")
+        if bodyGyro then
+            bodyGyro:Destroy()
+        end
+    end
+end
+
+-- Bind fly toggle to a key (e.g., "F")
+userInputService.InputBegan:Connect(function(input, processed)
+    if not processed and input.KeyCode == Enum.KeyCode.F then
+        toggleFly()
+    end
+end)
+
+-- Ensure flying is disabled if the player respawns
+player.CharacterAdded:Connect(function(char)
+    character = char
+    humanoid = character:WaitForChild("Humanoid")
+end)
